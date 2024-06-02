@@ -1,0 +1,7 @@
+.venv
+.idea
+downloads
+/templates/login.html
+/templates/upload.html
+/templates/update_result.html
+/templates/trigger_update.html

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firmware Management</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        .custom-file-label {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Firmware Management</h1>
+        <form id="uploadForm" class="mb-4">
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="file" name="file" accept=".bin" required>
+                <label class="custom-file-label" for="file">Choose .bin file</label>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Upload</button>
+        </form>
+        <div class="text-center">
+            <button onclick="triggerDownloadFirmware()" class="btn btn-success mr-2">Download and Save to SPIFFS</button>
+            <button onclick="triggerOTAUpdate()" class="btn btn-warning">OTA Update</button>
+        </div>
+        <div id="notification" class="mt-4 text-center" style="display: none;"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script>
+        document.getElementById('file').addEventListener('change', function(event) {
+            const fileName = event.target.files[0]?.name || 'Choose .bin file';
+            document.querySelector('.custom-file-label').textContent = fileName;
+        });
+
+        function triggerDownloadFirmware() {
+            fetch('/trigger_download_firmware', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => showNotification(data.message, data.success))
+            .catch(() => showNotification('Error triggering firmware download.', false));
+        }
+
+        function triggerOTAUpdate() {
+            fetch('/trigger_ota_update', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => showNotification(data.message, data.success))
+            .catch(() => showNotification('Error triggering OTA update.', false));
+        }
+
+        function showNotification(message, success) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'alert ' + (success ? 'alert-success' : 'alert-danger');
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            if (file && file.name.endsWith('.bin')) {
+                const formData = new FormData();
+                formData.append('file', file);
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    showNotification(data.message, data.success);
+                    if (data.success) {
+                        document.getElementById('uploadForm').reset();
+                        document.querySelector('.custom-file-label').textContent = 'Choose .bin file';
+                    }
+                })
+                .catch(() => showNotification('Error uploading firmware.', false));
+            } else {
+                showNotification('Please select a .bin file.', false);
+            }
+        });
+    </script>
+</body>
+</html>
